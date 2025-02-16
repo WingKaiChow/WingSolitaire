@@ -611,6 +611,13 @@ function statesAreEqual(state1, state2) {
  * @returns {boolean} True if game is lost, false otherwise
  */
 function checkLoseCondition(gameState) {
+    // First check if all cards are in foundation piles
+    const allCardsInFoundation = gameState.foundations.reduce((total, foundation) => 
+        total + foundation.cards.length, 0) === 52;
+    if (allCardsInFoundation) {
+        return false; // Not a loss if all cards are in foundation
+    }
+
     // Comprehensive move checking function
     const findAllValidMoves = () => {
         const validMoves = [];
