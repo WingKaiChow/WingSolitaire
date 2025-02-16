@@ -327,6 +327,13 @@ let isProcessingDraw = false;
 function addEventListeners(stock, waste, foundations, tableaus) {
     // Handle stock pile clicks
     stock.pileElement.addEventListener("click", () => {
+        // First check if all cards are in foundation piles
+        const totalFoundationCards = foundations.reduce((sum, foundation) => 
+            sum + foundation.cards.length, 0);
+        if (totalFoundationCards === 52) {
+            return; // Don't process stock clicks if game is won
+        }
+
         // Prevent clicks when both piles are empty or while processing
         if (isProcessingDraw || (stock.isEmpty() && waste.isEmpty())) {
             return;
@@ -337,12 +344,12 @@ function addEventListeners(stock, waste, foundations, tableaus) {
         stock.pileElement.style.pointerEvents = 'none';
         waste.pileElement.style.pointerEvents = 'none';
 
-        if (!stock.isEmpty()) {
-            console.log('\n=== DRAWING FROM STOCK ===');
-            console.log('Stock cards:', stock.cards.length);
-            console.log('Waste cards:', waste.cards.length);
+        try {
+            if (!stock.isEmpty()) {
+                console.log('\n=== DRAWING FROM STOCK ===');
+                console.log('Stock cards:', stock.cards.length);
+                console.log('Waste cards:', waste.cards.length);
 
-            try {
                 let cardElement = stock.removeCard();
                 if (cardElement) {
                     // Prepare the card for waste pile
@@ -398,44 +405,31 @@ function addEventListeners(stock, waste, foundations, tableaus) {
                 console.log('After draw:');
                 console.log('Stock cards:', stock.cards.length);
                 console.log('Waste cards:', waste.cards.length);
-            } finally {
-                // Re-enable click handling after operation with longer timeout
-                setTimeout(() => {
-                    stock.pileElement.style.pointerEvents = 'auto';
-                    waste.pileElement.style.pointerEvents = 'auto';
-                    isProcessingDraw = false;
-                }, 250);
-            }
-        } else if (!waste.isEmpty()) {
-            console.log('\n=== RECYCLING WASTE TO STOCK ===');
-            console.log('Before recycling:');
-            console.log('Stock cards:', stock.cards.length);
-            console.log('Waste cards:', waste.cards.length);
+            } else if (!waste.isEmpty()) {
+                console.log('\n=== RECYCLING WASTE TO STOCK ===');
+                console.log('Before recycling:');
+                console.log('Stock cards:', stock.cards.length);
+                console.log('Waste cards:', waste.cards.length);
 
-            // If we haven't made any moves before recycling
-            if (!gameStateHistory.movesMade) {
-                gameStateHistory.cycleCount++;
-                console.log(`Cycle count increased to ${gameStateHistory.cycleCount}`);
-                
-                // If we've cycled twice without moving any cards
-                if (gameStateHistory.cycleCount >= 2) {
-                    setTimeout(() => {
-                        alert("Game Over Wing! You've Lost!");
-                        location.reload(); // Restart the game
-                    }, 100);
-                    return;
+                // If we haven't made any moves before recycling
+                if (!gameStateHistory.movesMade) {
+                    gameStateHistory.cycleCount++;
+                    console.log(`Cycle count increased to ${gameStateHistory.cycleCount}`);
+                    
+                    // If we've cycled twice without moving any cards
+                    if (gameStateHistory.cycleCount >= 2) {
+                        setTimeout(() => {
+                            alert("Game Over Wing! You've Lost!");
+                            location.reload(); // Restart the game
+                        }, 100);
+                        return;
+                    }
+                } else {
+                    // Reset cycle count since we made moves
+                    gameStateHistory.cycleCount = 0;
+                    gameStateHistory.movesMade = false;
                 }
-            } else {
-                // Reset cycle count since we made moves
-                gameStateHistory.cycleCount = 0;
-                gameStateHistory.movesMade = false;
-            }
 
-            // Disable click handling during recycling
-            stock.pileElement.style.pointerEvents = 'none';
-            waste.pileElement.style.pointerEvents = 'none';
-
-            try {
                 // Move all waste cards back to stock face down in reverse order
                 const wasteCards = [];
                 while (!waste.isEmpty()) {
@@ -460,14 +454,14 @@ function addEventListeners(stock, waste, foundations, tableaus) {
                 console.log('After recycling:');
                 console.log('Stock cards:', stock.cards.length);
                 console.log('Waste cards:', waste.cards.length);
-            } finally {
-                // Re-enable click handling after operation with longer timeout
-                setTimeout(() => {
-                    stock.pileElement.style.pointerEvents = 'auto';
-                    waste.pileElement.style.pointerEvents = 'auto';
-                    isProcessingDraw = false;
-                }, 250);
             }
+        } finally {
+            // Re-enable click handling after operation with longer timeout
+            setTimeout(() => {
+                stock.pileElement.style.pointerEvents = 'auto';
+                waste.pileElement.style.pointerEvents = 'auto';
+                isProcessingDraw = false;
+            }, 250);
         }
     });
 
@@ -771,16 +765,86 @@ function checkLoseCondition(gameState) {
 
     // If there are no valid moves
     if (validMoves.length === 0) {
+        // Check if all cards are in tableau or foundation piles
+        const totalTableauCards = gameState.tableaus.reduce((sum, tableau) => 
+            sum + tableau.cards.length, 0);
+        const totalFoundationCards = gameState.foundations.reduce((sum, foundation) => 
+            sum + foundation.cards.length, 0);
+        const totalWasteCards = gameState.waste.cards.length;
+        const totalStockCards = gameState.stock.cards.length;
+        
+        // If all cards are in foundation piles or being moved to foundation, don't trigger loss
+        if (totalFoundationCards + totalTableauCards === 52 && totalWasteCards === 0 && totalStockCards === 0) {
+            // Check if any tableau cards can be moved to foundation
+            let canMoveToFoundation = false;
+            for (const tableau of gameState.tableaus) {
+                if (tableau.cards.length > 0) {
+                    const card = tableau.cards[tableau.cards.length - 1];
+                    for (const foundation of gameState.foundations) {
+                        if (isValidMove(card, foundation.pileElement, null)) {
+                            canMoveToFoundation = true;
+                            break;
+                        }
+                    }
+                    if (canMoveToFoundation) break;
+                }
+            }
+            
+            // If any card can be moved to foundation, continue the game
+            if (canMoveToFoundation) {
+                console.log('Cards can still be moved to foundation - continue game');
+                return false;
+            }
+        }
+
         // If there are no hidden cards and no valid moves, it's a stalemate
         if (!hasHiddenCards) {
-            console.log('No valid moves available and all cards are face-up - game is lost');
-            return true;
+            // Double check if any tableau cards can be moved to foundation
+            let canMoveToFoundation = false;
+            for (const tableau of gameState.tableaus) {
+                if (tableau.cards.length > 0) {
+                    const card = tableau.cards[tableau.cards.length - 1];
+                    for (const foundation of gameState.foundations) {
+                        if (isValidMove(card, foundation.pileElement, null)) {
+                            canMoveToFoundation = true;
+                            break;
+                        }
+                    }
+                    if (canMoveToFoundation) break;
+                }
+            }
+            
+            // Only declare loss if no cards can be moved to foundation
+            if (!canMoveToFoundation) {
+                console.log('No valid moves available and all cards are face-up - game is lost');
+                return true;
+            }
+            return false;
         }
 
         // Check for draw pile depletion
         if (gameState.stock.isEmpty() && gameState.waste.isEmpty()) {
-            console.log('Stock and waste piles empty with no valid moves - game is lost');
-            return true;
+            // Double check if any tableau cards can be moved to foundation
+            let canMoveToFoundation = false;
+            for (const tableau of gameState.tableaus) {
+                if (tableau.cards.length > 0) {
+                    const card = tableau.cards[tableau.cards.length - 1];
+                    for (const foundation of gameState.foundations) {
+                        if (isValidMove(card, foundation.pileElement, null)) {
+                            canMoveToFoundation = true;
+                            break;
+                        }
+                    }
+                    if (canMoveToFoundation) break;
+                }
+            }
+            
+            // Only declare loss if no cards can be moved to foundation
+            if (!canMoveToFoundation) {
+                console.log('Stock and waste piles empty with no valid moves - game is lost');
+                return true;
+            }
+            return false;
         }
     }
 
@@ -815,13 +879,31 @@ function gameLoop(gameState) {
     const gameCheckInterval = setInterval(() => {
         if (gameEnded) return;
 
-        if (checkWinCondition(gameState)) {
-            gameEnded = true;
-            clearInterval(gameCheckInterval);
-            setTimeout(() => {
-                alert("Congratulations Wing! You've Won!");
-            }, 500);
-        } else if (checkLoseCondition(gameState)) {
+        // Don't check conditions if a card is being dragged
+        if (document.querySelector('.card.dragging')) {
+            return;
+        }
+
+        // First check if all cards are in foundation piles
+        const allCardsInFoundation = gameState.foundations.reduce((total, foundation) => 
+            total + foundation.cards.length, 0) === 52;
+
+        // If all cards are in foundation, check win condition
+        if (allCardsInFoundation) {
+            // Always check win condition first when all cards are in foundation
+            const isWin = checkWinCondition(gameState);
+            if (isWin) {
+                gameEnded = true;
+                clearInterval(gameCheckInterval);
+                setTimeout(() => {
+                    alert("Congratulations Wing! You've Won!");
+                }, 500);
+            }
+            return; // Don't check loss condition if all cards are in foundation
+        }
+        
+        // Only check loss condition if not all cards are in foundation
+        if (checkLoseCondition(gameState)) {
             gameEnded = true;
             clearInterval(gameCheckInterval);
             setTimeout(() => {
@@ -829,7 +911,7 @@ function gameLoop(gameState) {
                 location.reload(); // Restart the game
             }, 500);
         }
-    }, 1000);
+    }, 2000); // Increased interval to reduce checks during moves
 
     return gameCheckInterval;
 }
