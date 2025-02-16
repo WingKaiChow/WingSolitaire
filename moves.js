@@ -93,11 +93,6 @@ export function isValidMove(sourceCard, destinationPile, destinationCard = null)
             return false;
         }
 
-        // Prevent moving from foundation piles
-        if (sourcePile.classList.contains('foundation-pile')) {
-            console.log('Invalid move: Cannot move cards from foundation');
-            return false;
-        }
     }
 
     // Moving to an empty tableau pile
