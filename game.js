@@ -257,8 +257,8 @@ let isProcessingDraw = false;
 function addEventListeners(stock, waste, foundations, tableaus) {
     // Handle stock pile clicks
     stock.pileElement.addEventListener("click", () => {
-        // Prevent multiple draws while processing
-        if (isProcessingDraw) {
+        // Prevent clicks when both piles are empty or while processing
+        if (isProcessingDraw || (stock.isEmpty() && waste.isEmpty())) {
             return;
         }
 
