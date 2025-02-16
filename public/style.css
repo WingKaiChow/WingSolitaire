@@ -1,0 +1,45 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background-color: #f0f0f0;
+}
+
+#game-container {
+    display: grid;
+    grid-template-columns: 100px 1fr; /* Adjust width as needed */
+    gap: 10px;
+    border: 1px solid #ccc;
+    padding: 20px;
+    background-color: #fff;
+    width: 80vw; /* This ensures the container takes up a good portion of the viewport width */
+    max-width: 1000px; /* Max width to prevent it from getting too large on wide screens */
+    min-height: 600px;
+}
+
+#sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background-color: #ddd;
+}
+
+.slot {
+    height: 100px; /* Adjust height to match your design */
+    border: 1px solid #ccc;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #e0e0e0;
+    font-size: 1em;
+}
+
+#tableau {
+    border: 1px solid #ccc;
+    min-height: 400px; /* Ensure it's large enough for gameplay */
+    background-color: #fff; /* To make it visible even when empty */
+}
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background-color: #f0f0f0;
+}
