@@ -1,15 +1,49 @@
-// game.js
+/**
+ * game.js
+ * Core game logic for Klondike Solitaire implementation
+ * 
+ * This file is responsible for:
+ * - Game initialization and setup
+ * - Game state management through DOM
+ * - Win/loss condition detection
+ * - Pile operations (stock, waste, foundation, tableau)
+ * - Game loop and state tracking
+ * 
+ * Design decisions:
+ * - Uses DOM for state management to avoid sync issues
+ * - Implements event-based interaction system
+ * - Provides real-time visual feedback
+ * - Handles race conditions in stock pile operations
+ */
 import { createDeck, shuffleDeck } from "./cards.js";
 import { moveCard, isValidMove } from "./moves.js";
 import { createCardElement, handleDragStart, handleDrop, handleDragOver, handleDragLeave, handleDragEnd, handleMouseDown } from "./interactions.js";
 
-// Function to add drag event listeners to a card
+/**
+ * Adds standard drag event listeners to a card element
+ * Used for both initial setup and dynamically created cards
+ * @param {HTMLElement} card - The card element to add listeners to
+ */
 function addCardEventListeners(card) {
     card.addEventListener("dragstart", handleDragStart);
     card.addEventListener("dragend", handleDragEnd);
 }
 
+/**
+ * Represents a pile of cards in the game
+ * Handles card stacking, visual layout, and pile-specific behaviors
+ * 
+ * Key features:
+ * - Maintains DOM synchronization
+ * - Handles card positioning and stacking
+ * - Manages pile-specific visual states
+ */
 class Pile {
+    /**
+     * Creates a new pile with specified name and container
+     * @param {string} name - Unique identifier for the pile
+     * @param {HTMLElement} container - Parent element for the pile
+     */
     constructor(name, container) {
         this.name = name;
         this.cards = [];
@@ -19,6 +53,11 @@ class Pile {
         container.appendChild(this.pileElement);
     }
 
+    /**
+     * Adds a card to the pile with proper positioning and styling
+     * Handles special cases for foundation and tableau piles
+     * @param {HTMLElement} card - The card element to add
+     */
     addCard(card) {
         // Remove the card from its previous parent if it exists
         if (card.parentElement) {
@@ -80,6 +119,11 @@ class Pile {
         }
     }
 
+    /**
+     * Removes and returns the top card from the pile
+     * Updates pile layout and card visibility
+     * @returns {HTMLElement|null} The removed card or null if pile is empty
+     */
     removeCard() {
         if (this.cards.length === 0) return null;
         // Sync the cards array with DOM before removing
@@ -123,6 +167,19 @@ class Pile {
     }
 }
 
+/**
+ * Initializes the game by setting up the board and dealing cards
+ * 
+ * Process:
+ * 1. Creates and validates game elements
+ * 2. Initializes all piles (stock, waste, foundation, tableau)
+ * 3. Creates and shuffles deck
+ * 4. Deals cards according to Solitaire rules
+ * 5. Sets up event listeners
+ * 6. Starts game loop
+ * 
+ * @returns {Object|null} Game state object or null if initialization fails
+ */
 export function initializeGame() {
     const gameBoard = document.getElementById("game-container");
     console.log("gameBoard", gameBoard);
@@ -251,9 +308,22 @@ export function initializeGame() {
     return gameState;
 }
 
-// Flag to track if we're currently processing a card draw
+/**
+ * Prevents race conditions in stock pile operations
+ * Added to fix multiple card draw issue when clicking rapidly
+ * @type {boolean}
+ */
 let isProcessingDraw = false;
 
+/**
+ * Sets up all game event listeners for card interactions
+ * Handles stock pile draws, tableau clicks, and drag/drop
+ * 
+ * @param {Pile} stock - Stock pile for drawing cards
+ * @param {Pile} waste - Waste pile for drawn cards
+ * @param {Array<Pile>} foundations - Foundation piles for building suits
+ * @param {Array<Pile>} tableaus - Tableau piles for main gameplay
+ */
 function addEventListeners(stock, waste, foundations, tableaus) {
     // Handle stock pile clicks
     stock.pileElement.addEventListener("click", () => {
@@ -453,6 +523,13 @@ function addEventListeners(stock, waste, foundations, tableaus) {
     };
 }
 
+/**
+ * Checks if the game has been won
+ * Win condition: All cards properly sorted in foundation piles
+ * 
+ * @param {Object} gameState - Current game state
+ * @returns {boolean} True if game is won, false otherwise
+ */
 function checkWinCondition(gameState) {
     // Check if all foundation piles have all 13 cards in correct order
     const foundationWin = gameState.foundations.every(foundation => {
@@ -523,6 +600,16 @@ function statesAreEqual(state1, state2) {
            state1.tableauState === state2.tableauState;
 }
 
+/**
+ * Checks if the game has been lost
+ * Loss conditions:
+ * - No valid moves available
+ * - Stock cycled twice without moves
+ * - No hidden cards and no valid moves
+ * 
+ * @param {Object} gameState - Current game state
+ * @returns {boolean} True if game is lost, false otherwise
+ */
 function checkLoseCondition(gameState) {
     // Comprehensive move checking function
     const findAllValidMoves = () => {
@@ -696,6 +783,13 @@ function checkLoseCondition(gameState) {
     return false;
 }
 
+/**
+ * Main game loop that checks win/loss conditions
+ * Runs on an interval to continuously monitor game state
+ * 
+ * @param {Object} gameState - Current game state
+ * @returns {number} Interval ID for the game loop
+ */
 function gameLoop(gameState) {
     let gameEnded = false;
     
