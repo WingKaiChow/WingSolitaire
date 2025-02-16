@@ -479,18 +479,8 @@ function checkWinCondition(gameState) {
         return true;
     });
 
-    if (foundationWin) return true;
-
-    // Alternative win condition: all tableau cards are face-up
-    const allTableauCardsVisible = gameState.tableaus.every(tableau => {
-        return tableau.cards.every(card => !card.classList.contains('face-down'));
-    });
-
-    // Also check that stock and waste piles are empty
-    const stockAndWasteEmpty = gameState.stock.isEmpty() && gameState.waste.isEmpty();
-
-    // Win if all tableau cards are face-up and no cards in stock/waste
-    return allTableauCardsVisible && stockAndWasteEmpty;
+    // Only win when all cards are in foundation piles in correct order
+    return foundationWin;
 }
 
 // Track the state of the stock pile cycling
