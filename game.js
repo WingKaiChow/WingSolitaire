@@ -251,17 +251,26 @@ export function initializeGame() {
     return gameState;
 }
 
+// Flag to track if we're currently processing a card draw
+let isProcessingDraw = false;
+
 function addEventListeners(stock, waste, foundations, tableaus) {
     // Handle stock pile clicks
     stock.pileElement.addEventListener("click", () => {
+        // Prevent multiple draws while processing
+        if (isProcessingDraw) {
+            return;
+        }
+
+        // Set processing flag and disable click handling
+        isProcessingDraw = true;
+        stock.pileElement.style.pointerEvents = 'none';
+        waste.pileElement.style.pointerEvents = 'none';
+
         if (!stock.isEmpty()) {
             console.log('\n=== DRAWING FROM STOCK ===');
             console.log('Stock cards:', stock.cards.length);
             console.log('Waste cards:', waste.cards.length);
-
-            // Disable click handling during card movement
-            stock.pileElement.style.pointerEvents = 'none';
-            waste.pileElement.style.pointerEvents = 'none';
 
             try {
                 let cardElement = stock.removeCard();
@@ -320,11 +329,12 @@ function addEventListeners(stock, waste, foundations, tableaus) {
                 console.log('Stock cards:', stock.cards.length);
                 console.log('Waste cards:', waste.cards.length);
             } finally {
-                // Re-enable click handling after operation
+                // Re-enable click handling after operation with longer timeout
                 setTimeout(() => {
                     stock.pileElement.style.pointerEvents = 'auto';
                     waste.pileElement.style.pointerEvents = 'auto';
-                }, 100);
+                    isProcessingDraw = false;
+                }, 250);
             }
         } else if (!waste.isEmpty()) {
             console.log('\n=== RECYCLING WASTE TO STOCK ===');
@@ -381,11 +391,12 @@ function addEventListeners(stock, waste, foundations, tableaus) {
                 console.log('Stock cards:', stock.cards.length);
                 console.log('Waste cards:', waste.cards.length);
             } finally {
-                // Re-enable click handling after operation
+                // Re-enable click handling after operation with longer timeout
                 setTimeout(() => {
                     stock.pileElement.style.pointerEvents = 'auto';
                     waste.pileElement.style.pointerEvents = 'auto';
-                }, 100);
+                    isProcessingDraw = false;
+                }, 250);
             }
         }
     });
