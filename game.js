@@ -420,7 +420,7 @@ function addEventListeners(stock, waste, foundations, tableaus) {
                     if (gameStateHistory.cycleCount >= 2) {
                         setTimeout(() => {
                             alert("Game Over Wing! You've Lost!");
-                            location.reload(); // Restart the game
+                            // Don't automatically restart, let user choose when to start new game
                         }, 100);
                         return;
                     }
@@ -908,7 +908,7 @@ function gameLoop(gameState) {
             clearInterval(gameCheckInterval);
             setTimeout(() => {
                 alert("Game Over Wing! You've Lost!");
-                location.reload(); // Restart the game
+                // Don't automatically restart, let user choose when to start new game
             }, 500);
         }
     }, 2000); // Increased interval to reduce checks during moves
